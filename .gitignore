@@ -19,6 +19,19 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ── Local data you may not want public (optional) ─────────────
-# Uncomment if you keep scratch/work-in-progress data out of the repo
-# data/scratch/
+# ── Internal planning & prep docs ─────────────────────────────
+01_PROJECT_BRIEF.md
+02_SYSTEM_DESIGN.md
+03_BUILD_PLAN.md
+04_CONTENT_CORPUS.md
+05_DEVPOST_SUBMISSION.md
+06_DEMO_SCRIPT.md
+
+# ── Media / personal assets ───────────────────────────────────
+pic1.jpg
+pic2.jpg
+clarity_cover.png
+team_photo.png
+
+# ── Presentation folder ────────────────────────────────────────
+presentation/
