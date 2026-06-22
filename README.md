@@ -1,34 +1,118 @@
-# Clarity — Project Folder (START HERE)
+# Clarity
 
-> **Working product name:** Clarity *(placeholder — rename freely. Alternatives: Landing, Northstar, Wayfinder, FirstSteps.)*
->
-> **One line:** Plain-language answers to real-world rules and benefits — sourced from official websites, honest about what it doesn't know, and built to hand you to a real human when the stakes are high.
->
-> **Event:** USAII Global AI Hackathon 2026 · Undergraduate Track (AI for Life & Work) · **Brief 4 — Public Services · Direction A: Benefits Navigator**
-> **Deadline:** June 21, 11:59 PM ET · Submit via Devpost
+**Plain-language answers to real-world rules and benefits for international students -- sourced from official websites, honest about what it doesn't know, and built to hand you to a real human when the stakes are high.**
+
+Built for the USAII Global AI Hackathon 2026 | Undergraduate Track | Brief 4: Public Services -- Benefits Navigator
 
 ---
 
-## What this folder is
+## The Problem
 
-This is the complete brain of the project. Every document Cowork needs to understand the idea and build the MVP is here, plus every document needed to submit to the hackathon.
+When an international student arrives in the US, even basic tasks -- opening a bank account, getting a driver's license, understanding what support they qualify for -- become a maze. The information technically exists, but it is scattered across dozens of federal, state, and university websites, written in bureaucratic language, and impossible to map to one person's specific situation. General-purpose AI chatbots make the problem worse by hallucinating answers to questions where a wrong answer can break a visa status or waste weeks of effort.
 
-## How to use this folder (read in this order)
+## What Clarity Does
 
-| File | What it is | Who it's for |
-|------|-----------|--------------|
-| `README.md` | This file — index + the prompt to start Cowork | You |
-| `01_PROJECT_BRIEF.md` | The problem, the user, the vision, the scope, the wedge | You + Cowork |
-| `02_SYSTEM_DESIGN.md` | Architecture, the anti-hallucination pipeline, tech stack | Cowork |
-| `03_BUILD_PLAN.md` | The exact build order, MVP scope, file structure, acceptance criteria | Cowork |
-| `04_CONTENT_CORPUS.md` | The knowledge base: which official sources to gather + the escalation directory | You + Cowork |
-| `05_DEVPOST_SUBMISSION.md` | Every required Devpost field, pre-written and ready to paste | You |
-| `06_DEMO_SCRIPT.md` | The 2–5 min video script + the "winning moment" | You |
+Clarity is a conversational assistant that answers real-world questions for F-1 international students in Texas. It covers three end-to-end journeys:
 
-## The golden rule of this project
+- **Open a US bank account** -- which banks accept F-1 students, what documents are actually needed, whether an SSN is required.
+- **Get an SSN and/or Texas driver's license** -- the real process, the correct order, required documents, and where to go.
+- **Benefits Navigator** -- what campus and public support a student qualifies for, and just as importantly, what they do not.
 
-**The system never makes up an answer.** It answers *only* from the curated official sources, shows the source on every answer, and when it isn't confident or the question is out of scope, it says so plainly and routes the person to the right human. The honesty *is* the product. Every design decision serves this rule.
+Every answer includes a plain-language explanation, an ordered checklist of steps with required documents, the official source name and URL, a "last verified" date, and a per-step confidence indicator.
 
-## The prompt to start Cowork
+## The Core Principle
 
-Copy the block in `START_HERE_COWORK_PROMPT.txt` (also pasted in chat) into Claude Cowork once this folder is open. It tells Cowork to read everything here first, then build the MVP from `03_BUILD_PLAN.md` — and critically, to stop and verify real facts instead of inventing them.
+**The system never makes up an answer.** It answers only from a curated corpus of verified official sources. When it is not confident or the question is out of scope, it says so plainly and routes the user to the right human contact. Refusing to answer is a designed feature, not a failure.
+
+## Architecture
+
+Clarity is a retrieval-augmented generation (RAG) system with a hard confidence gate that makes hallucination architecturally difficult:
+
+```
+Intake --> Retrieval (local embeddings + threshold gate) --> Grounded Generation
+       --> Personalized Checklist (citations from metadata) --> Human Escalation
+```
+
+1. **Intake** -- Short, plain-language questions narrow down the user's situation (visa type, state, existing documents).
+2. **Retrieval** -- The query is embedded locally using sentence-transformers and matched via cosine similarity against a curated corpus of 13 verified official passages. Each passage carries its source URL, jurisdiction, and last-verified date.
+3. **Threshold Gate** -- If the top retrieval score falls below a confidence threshold, the system stops. No generation. No guessing. It abstains and escalates to a human.
+4. **Grounded Generation** -- The LLM (Llama 3.3 70B via Groq) answers strictly from the retrieved passages. It is explicitly instructed to never use outside knowledge. Temperature is set to 0.0 for deterministic extraction.
+5. **Checklist Output** -- The answer is formatted into ordered steps. Source citations (URLs, dates) are attached from the corpus metadata, not from the model, so they cannot be fabricated.
+6. **Human Escalation** -- A curated directory routes users to verified human contacts (university ISSS office, student legal services, government helplines). Escalation is always available and auto-triggered on high-stakes topics.
+
+## Tech Stack
+
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| UI | Streamlit | Fast to build, clean demoable interface |
+| Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Runs locally, no API key, no data leaves the machine |
+| Generation | Groq API -- Llama 3.3 70B | Free tier, strong instruction-following |
+| Corpus | JSON | 13 verified passages from official sources |
+| Escalation | JSON | Curated human contacts mapped by journey |
+| Runtime | Python | NumPy, python-dotenv |
+
+All tools and services used are free. No paid APIs. No credit card required.
+
+## Getting Started
+
+```bash
+cd clarity-app
+pip install -r requirements.txt
+```
+
+Create a `.env` file in the `clarity-app` directory with your Groq API key:
+
+```
+GROQ_API_KEY=gsk_your_key_here
+```
+
+Get a free key at [console.groq.com](https://console.groq.com) (no credit card needed).
+
+Run the application:
+
+```bash
+streamlit run app.py
+```
+
+The first run downloads the local embedding model (all-MiniLM-L6-v2, approximately 90 MB) once.
+
+## Data Sources
+
+All data is publicly available and officially published. No scraping. No synthetic data. Every passage was manually verified.
+
+**Corpus sources include:** Chase, Bank of America, Social Security Administration, Department of Homeland Security (Study in the States), Texas Department of Public Safety, Federal Student Aid, USDA Food and Nutrition Service, and UNT university offices (International Affairs, Student Affairs, Student Money Management Center).
+
+**Escalation contacts:** UNT International Student and Scholar Services, UNT Student Legal Services, UNT Dean of Students Office.
+
+## Project Structure
+
+```
+clarity-app/
+  app.py                          Main Streamlit application
+  config.py                       Thresholds, model config, journeys, paths
+  requirements.txt                Python dependencies
+  data/
+    corpus.json                   Curated verified passages
+    escalation_directory.json     Human contact directory
+  engine/
+    intake.py                     Journey selection and intake questions
+    retrieval.py                  Embedding, scoring, threshold gate
+    generate.py                   Grounded generation via Groq
+    checklist.py                  Step formatting with source metadata
+    escalation.py                 High-stakes detection and contact lookup
+  prompts/
+    system_grounding.txt          System prompt for strict grounding
+```
+
+## Responsible AI
+
+- Answers only from curated official sources. Never uses the model's general knowledge.
+- Cites the source name, URL, and last-verified date on every claim.
+- Abstains and escalates when retrieval confidence is below threshold.
+- Auto-escalates on high-stakes topics (immigration, legal, financial).
+- Collects no personal data. Intake answers exist only in the current session.
+- Explicitly states it is not legal, immigration, or financial advice.
+
+## License
+
+This project was built for the USAII Global AI Hackathon 2026.
